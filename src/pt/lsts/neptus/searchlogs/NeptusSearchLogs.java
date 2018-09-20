@@ -1,20 +1,25 @@
 package pt.lsts.neptus.searchlogs;
-import com.kitfox.svg.pathcmd.Horizontal;
 import pt.lsts.neptus.i18n.I18n;
 import pt.lsts.neptus.util.GuiUtils;
-import pt.lsts.neptus.util.ImageUtils;
 import pt.lsts.neptus.util.conf.ConfigFetch;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class NeptusSearchLogs extends JFrame implements ActionListener {
     private static final String SEARCH_LOGS_TITLE = I18n.text("Neptus Logs Search");
+
+    private static final String URL = "http://localhost:8001/";
+    private static final String USER_AGENT = "java";
+
     private JCheckBox vehiclesNamesSelectAll;
     private Box vehiclesNamesBox;
     private ArrayList<JCheckBox> vehiclesNamesCheckBox;
@@ -31,12 +36,21 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JButton searchBtn;
     private JButton openToMraBtn;
 
+    private URL url;
+    private HttpURLConnection con;
+    private ParameterStringBuilder stringBuilder;
+
+
 
     /**
      * Constructor
      */
     public NeptusSearchLogs() {
         super(SEARCH_LOGS_TITLE);
+
+        //initConnectionServer();
+        stringBuilder = new ParameterStringBuilder();
+
         setIconImage(Toolkit.getDefaultToolkit().getImage(ConfigFetch.class.getResource("/images/neptus-icon.png")));
         setSize(1200, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -80,6 +94,42 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         pack();
         setVisible(true);
+    }
+
+    private void initConnectionServer() {
+        try {
+            url = new URL("http://localhost:8001/");
+            //con = (HttpURLConnection) url.openConnection();
+            //con.setRequestMethod("GET");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getRequestToServer(Map<String, String> parameters) throws IOException {
+
+        URL url_request = new URL(URL + ParameterStringBuilder.getParamsString(parameters));
+        System.out.println("PIM: " + URL + ParameterStringBuilder.getParamsString(parameters));
+
+        HttpURLConnection con = (HttpURLConnection) url_request.openConnection();
+        con.setRequestMethod("GET");
+        con.setRequestProperty("User-Agent", USER_AGENT);
+        con.setConnectTimeout(5000);
+        con.setReadTimeout(5000);
+
+        int responseCode = con.getResponseCode();
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        System.out.println(response.toString());
+        return response.toString();
     }
 
     private JPanel addTotalGrid() {
@@ -316,11 +366,19 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         yearBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        // todo add year of logs dynamically
-        String[] years = {"2018",
-                "2017",
-                "2016",
-                "2015"};
+
+        //todo make request
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("all-years", "only");
+
+        String[] years = null;
+
+        try {
+            String tmp = getRequestToServer(parameters);
+            years = getResponseParams(tmp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         yearCheckBox = new ArrayList<JCheckBox>();
         for(int i = 0; i < years.length; i++) {
@@ -348,15 +406,22 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         vehiclesTypeBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        // todo add type of vehicles dynamically
-        String[] vehiclesType = {"type-1",
-                "Type-2",
-                "Type-3",
-                "Type-4"};
+        //todo make request
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("all-types", "only");
+
+        String[] types = null;
+
+        try {
+            String tmp = getRequestToServer(parameters);
+            types = getResponseParams(tmp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         vehiclesTypeCheckBox = new ArrayList<JCheckBox>();
-        for(int i = 0; i < vehiclesType.length; i++) {
-            vehiclesTypeCheckBox.add(new JCheckBox(vehiclesType[i]));
+        for(int i = 0; i < types.length; i++) {
+            vehiclesTypeCheckBox.add(new JCheckBox(types[i]));
             vehiclesTypeBox.add(vehiclesTypeCheckBox.get(i));
         }
 
@@ -382,20 +447,18 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         vehiclesNamesBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        // todo add names of vehicles dynamically
-        String[] vehicles = {"Lauv-noptilus-1",
-                "Lauv-noptilus-2",
-                "Lauv-noptilus-3",
-                "Lauv-xplore-1",
-                "Lauv-explore-2",
-                "Lauv-noptilus-2",
-                "Lauv-noptilus-3",
-                "Lauv-xplore-1",
-                "Lauv-explore-2",
-                "Lauv-noptilus-2",
-                "Lauv-noptilus-3",
-                "Lauv-xplore-1",
-                "Lauv-explore-2"};
+        //todo make request
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("all-vehicles", "only");
+
+        String[] vehicles = null;
+
+        try {
+            String tmp = getRequestToServer(parameters);
+            vehicles = getResponseParams(tmp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         vehiclesNamesCheckBox = new ArrayList<JCheckBox>();
         for(int i = 0; i < vehicles.length; i++) {
@@ -409,6 +472,21 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         vehicleNamePanel.add(jScrollPane);
 
         return vehicleNamePanel;
+    }
+
+    private String[] getResponseParams(String response) {
+        String match = "OK";
+        int position = response.indexOf(match);
+        String result = response.substring(position+3);
+
+        result = result.replace("[","");
+        result = result.replace("]","");
+        result= result.replace("'","");
+        result = result.replace("(","");
+        result = result.replace(")","");
+        result = result.replace(",","");
+
+        return result.split(" ");
     }
 
     @Override
