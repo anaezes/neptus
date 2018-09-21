@@ -36,6 +36,13 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JButton searchBtn;
     private JButton openToMraBtn;
 
+    private JTextField distanceMinField;
+    private JTextField distanceMaxField;
+    private JTextField durMinField;
+    private JTextField durMaxField;
+    private JTextField zMinField;
+    private JTextField zMaxField;
+
     private URL url;
     private HttpURLConnection con;
     private ParameterStringBuilder stringBuilder;
@@ -276,7 +283,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         JPanel zMinPnl = new JPanel(new FlowLayout(FlowLayout.LEFT));
         zMinPnl.setBorder(BorderFactory.createTitledBorder("Z Min"));
-        JTextField zMinField = new JTextField();
+
+        zMinField = new JTextField();
         zMinField.setText("");
         zMinField.setColumns(10);
         zMinField.setAlignmentY(JTextField.LEFT);
@@ -287,7 +295,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         JPanel zMaxPnl = new JPanel(new FlowLayout(FlowLayout.LEFT));
         zMaxPnl.setBorder(BorderFactory.createTitledBorder("Z Max"));
 
-        JTextField zMaxField = new JTextField();
+        zMaxField = new JTextField();
         zMaxField.setText("");
         zMaxField.setColumns(10);
         zMaxField.setAlignmentY(JTextField.LEFT);
@@ -304,7 +312,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         JPanel durationMin = new JPanel(new FlowLayout(FlowLayout.LEFT));
         durationMin.setBorder(BorderFactory.createTitledBorder("Duration Min"));
 
-        JTextField durMinField = new JTextField();
+        durMinField = new JTextField();
         durMinField.setText("");
         durMinField.setColumns(10);
         durMinField.setAlignmentY(JTextField.LEFT);
@@ -315,7 +323,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         JPanel durationMax = new JPanel(new FlowLayout(FlowLayout.LEFT));
         durationMax.setBorder(BorderFactory.createTitledBorder("Duration Max"));
 
-        JTextField durMaxField = new JTextField();
+
+        durMaxField = new JTextField();
         durMaxField.setText("");
         durMaxField.setColumns(10);
         durMinField.setAlignmentY(JTextField.LEFT);
@@ -332,7 +341,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         JPanel distanceMin = new JPanel(new FlowLayout(FlowLayout.LEFT));
         distanceMin.setBorder(BorderFactory.createTitledBorder("Distance Min"));
 
-        JTextField distanceMinField = new JTextField();
+        distanceMinField = new JTextField();
         distanceMinField.setText("");
         distanceMinField.setColumns(10);
         distanceMinField.setAlignmentY(JTextField.LEFT);
@@ -343,7 +352,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         JPanel distanceMax = new JPanel(new FlowLayout(FlowLayout.LEFT));
         distanceMax.setBorder(BorderFactory.createTitledBorder("Distance Max"));
 
-        JTextField distanceMaxField = new JTextField();
+        distanceMaxField = new JTextField();
         distanceMaxField.setText("");
         distanceMaxField.setColumns(10);
         distanceMaxField.setAlignmentY(JTextField.LEFT);
@@ -488,6 +497,13 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         return result.split(" ");
     }
+    private String[] getResponseLogs(String response) {
+        String match = "OK";
+        int position = response.indexOf(match);
+        String result = response.substring(position+3);
+
+        return result.split("\\), "); //todo não resulta -> arranjar forma de dividir os logs
+    }
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -522,8 +538,58 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         }
 
         if(e.getSource() == searchBtn) {
-           //todo search logs
-            JOptionPane.showMessageDialog(null, "Work ?");
+
+            //todo dar para selecionar vários veiculos tipos e datas (falta alterar servidor)
+            Map<String, String> parameters = new HashMap<>();
+
+            for (JCheckBox box : vehiclesNamesCheckBox) {
+                if(box.isSelected())
+                    parameters.put("vehicle",box.getText());
+            }
+
+            for (JCheckBox box : yearCheckBox) {
+                if(box.isSelected())
+                    parameters.put("year",box.getText());
+            }
+
+            for (JCheckBox box : vehiclesTypeCheckBox) {
+                if(box.isSelected())
+                    parameters.put("type",box.getText());
+            }
+
+
+            if(!durMinField.getText().isEmpty())
+                parameters.put("minDistTravelled", durMinField.getText());
+
+            if(!distanceMaxField.getText().isEmpty())
+                parameters.put("maxDistTravelled", distanceMaxField.getText());
+
+            if(!durMinField.getText().isEmpty())
+                parameters.put("minDuration", durMinField.getText());
+
+            if(!durMinField.getText().isEmpty())
+                parameters.put("minDuration", durMinField.getText());
+
+            if(!zMinField.getText().isEmpty())
+                parameters.put("minDepth", zMinField.getText());
+
+            if(!zMaxField.getText().isEmpty())
+                parameters.put("maxDepth",  zMaxField.getText());
+
+
+            String[] logs = null;
+
+            try {
+                String tmp = getRequestToServer(parameters);
+                logs = getResponseLogs(tmp);
+            } catch (IOException error) {
+                error.printStackTrace();
+            }
+
+            //todo mostrar logs
+
+            showLogs(logs);
+
         }
 
         if(e.getSource() == mapBtn) {
@@ -532,6 +598,13 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         if(e.getSource() == openToMraBtn) {
             JOptionPane.showMessageDialog(null, "Under construction...");
+        }
+    }
+
+    private void showLogs(String[] logs) {
+
+        for(String log : logs){
+            System.out.println(log);
         }
     }
 }
