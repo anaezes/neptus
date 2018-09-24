@@ -12,6 +12,8 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class NeptusSearchLogs extends JFrame implements ActionListener {
@@ -42,6 +44,10 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JTextField durMaxField;
     private JTextField zMinField;
     private JTextField zMaxField;
+
+    private JPanel resultsGrid;
+    private JTable resultsTable;
+    private JScrollPane jScrollPaneResults;
 
     private URL url;
     private HttpURLConnection con;
@@ -205,12 +211,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
     private JPanel addResultsGrid() {
 
-        JPanel resultsGrid = new JPanel(new BorderLayout());
-
-        JScrollPane jScrollPane = new JScrollPane();
-        jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        jScrollPane.setPreferredSize(new Dimension (1200, 570));
-        resultsGrid.add(jScrollPane);
+        resultsGrid = new JPanel(new BorderLayout());
 
         return resultsGrid;
     }
@@ -497,12 +498,31 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         return result.split(" ");
     }
-    private String[] getResponseLogs(String response) {
+    private ArrayList<String> getResponseLogs(String response) {
         String match = "OK";
         int position = response.indexOf(match);
-        String result = response.substring(position+3);
+        String logs = response.substring(position+3);
 
-        return result.split("\\), "); //todo não resulta -> arranjar forma de dividir os logs
+        Pattern pattern = Pattern.compile("('([a-zA-Z0-9-_]*\\/)*Data.lsf.gz', " +
+                "'[a-zA-Z0-9-]+', '[a-z]{3}', ([0-9]{4}|'unknown'), " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
+                "(''|[A-Za-z0-9 :\"()<>';<>º#-.=_]*), " +
+                "(''|[A-Za-z0-9 :\"()<>';<>º#-.=_]*), " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?+, " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
+                "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)(, |)");
+
+        Matcher matcher = pattern.matcher(logs);
+
+        ArrayList<String> result = new ArrayList<>();
+        while (matcher.find()) {
+            result.add(matcher.group());
+        }
+
+        return result;
     }
 
     @Override
@@ -539,7 +559,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         if(e.getSource() == searchBtn) {
 
-            //todo dar para selecionar vários veiculos tipos e datas (falta alterar servidor)
+            //todo: dar para selecionar vários veiculos tipos e datas (falta alterar servidor)
             Map<String, String> parameters = new HashMap<>();
 
             for (JCheckBox box : vehiclesNamesCheckBox) {
@@ -577,7 +597,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
                 parameters.put("maxDepth",  zMaxField.getText());
 
 
-            String[] logs = null;
+            ArrayList<String> logs = null;
 
             try {
                 String tmp = getRequestToServer(parameters);
@@ -585,8 +605,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
             } catch (IOException error) {
                 error.printStackTrace();
             }
-
-            //todo mostrar logs
 
             showLogs(logs);
 
@@ -601,10 +619,30 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         }
     }
 
-    private void showLogs(String[] logs) {
+    private void showLogs(ArrayList<String> logs) {
 
         for(String log : logs){
             System.out.println(log);
+
         }
-    }
+
+
+        String rowData[][] = new String[logs.size()][13];
+
+        for(int i = 0; i < logs.size(); i++) {
+            String tmp[] = logs.get(i).split(", ");
+            rowData[i] = tmp;
+        }
+
+        String columnNames[] = { "Name", "Vehicle", "Type", "Year", "1", "2", "3", "4", "Warnings", "Errors", "5", "6", "7"};
+        resultsTable = new JTable(rowData, columnNames);
+        resultsTable.setFillsViewportHeight(true);
+
+        jScrollPaneResults = new JScrollPane(resultsTable);
+        jScrollPaneResults.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        jScrollPaneResults.setPreferredSize(new Dimension (1200, 570));
+
+        resultsGrid.add(jScrollPaneResults);
+        resultsGrid.revalidate();
+     }
 }
