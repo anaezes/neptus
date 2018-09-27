@@ -149,7 +149,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         in.close();
 
         System.out.println(response.toString());
-        return response.toString();
+        return response.toString().trim();
     }
 
     private JPanel addTotalGrid() {
@@ -572,10 +572,10 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         if(e.getSource() == yearSelectAll) {
             if (yearSelectAll.isSelected()) {
-                for (int i = 0; i < vehiclesNamesCheckBox.size(); i++)
+                for (int i = 0; i < yearCheckBox.size(); i++)
                     yearCheckBox.get(i).setSelected(true);
             } else {
-                for (int i = 0; i < vehiclesNamesCheckBox.size(); i++)
+                for (int i = 0; i < yearCheckBox.size(); i++)
                     yearCheckBox.get(i).setSelected(false);
             }
         }
