@@ -121,8 +121,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private void initConnectionServer() {
         try {
             url = new URL("http://localhost:8001/");
-            //con = (HttpURLConnection) url.openConnection();
-            //con.setRequestMethod("GET");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -131,7 +129,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private String getRequestToServer(Map<String, String> parameters) throws IOException {
 
         URL url_request = new URL(URL + ParameterStringBuilder.getParamsString(parameters));
-        System.out.println("PIM: " + URL + ParameterStringBuilder.getParamsString(parameters));
+        System.out.println(URL + ParameterStringBuilder.getParamsString(parameters));
 
         HttpURLConnection con = (HttpURLConnection) url_request.openConnection();
         con.setRequestMethod("GET");
@@ -378,7 +376,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         yearPanel.setBorder(BorderFactory.createTitledBorder("Year"));
         yearBox = Box.createVerticalBox();
 
-        //todo select all when this is checked
         yearSelectAll = new JCheckBox("Select all");
         yearSelectAll.addActionListener(this);
         yearBox.add(yearSelectAll);
@@ -386,7 +383,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         yearBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
 
-        //todo make request
         Map<String, String> parameters = new HashMap<>();
         parameters.put("all-years", "only");
 
@@ -425,7 +421,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         vehiclesTypeBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        //todo make request
         Map<String, String> parameters = new HashMap<>();
         parameters.put("all-types", "only");
 
@@ -459,14 +454,12 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         vehicleNamePanel.setBorder(BorderFactory.createTitledBorder("Vehicle Name"));
         vehiclesNamesBox = Box.createVerticalBox();
 
-        //todo select all when this is checked
         vehiclesNamesSelectAll = new JCheckBox("Select all");
         vehiclesNamesSelectAll.addActionListener(this);
         vehiclesNamesBox.add(vehiclesNamesSelectAll);
 
         vehiclesNamesBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        //todo make request
         Map<String, String> parameters = new HashMap<>();
         parameters.put("all-vehicles", "only");
 
