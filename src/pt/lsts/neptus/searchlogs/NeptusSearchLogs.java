@@ -4,9 +4,10 @@ import pt.lsts.neptus.util.GuiUtils;
 import pt.lsts.neptus.util.conf.ConfigFetch;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -46,6 +47,9 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JTextField zMaxField;
 
     private JPanel resultsGrid;
+    private  JDialog dialogPopup;
+    private JLabel dialogLabel;
+
     private JTable resultsTable;
     private JScrollPane jScrollPaneResults;
 
@@ -104,6 +108,11 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         settings.add(addSettingsGrid());
         results.add(addResultsGrid());
         total.add(addTotalGrid());
+
+        //Errors and warnings display
+        dialogPopup = new JDialog();
+        dialogPopup.setUndecorated(true);
+        dialogLabel = new JLabel("");
 
         pack();
         setVisible(true);
@@ -484,24 +493,30 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         return vehicleNamePanel;
     }
 
-    private String[] getResponseParams(String response) {
+    private String cutHeader(String response) {
         String match = "OK";
         int position = response.indexOf(match);
-        String result = response.substring(position+3);
 
-        result = result.replace("[","");
-        result = result.replace("]","");
-        result= result.replace("'","");
-        result = result.replace("(","");
-        result = result.replace(")","");
-        result = result.replace(",","");
+        return response.substring(position + 3);
+    }
+
+    private String[] getResponseParams(String response) {
+
+        String result = cutHeader(response);
+
+        result = result.replace("[", "");
+        result = result.replace("]", "");
+        result = result.replace("'", "");
+        result = result.replace("(", "");
+        result = result.replace(")", "");
+        result = result.replace(",", "");
 
         return result.split(" ");
     }
+
+
     private ArrayList<String> getResponseLogs(String response) {
-        String match = "OK";
-        int position = response.indexOf(match);
-        String logs = response.substring(position+3);
+        String logs = cutHeader(response);
 
         Pattern pattern = Pattern.compile("('([a-zA-Z0-9-_]*\\/)*Data.lsf.gz', " +
                 "'[a-zA-Z0-9-]+', '[a-z]{3}', ([0-9]{4}|'unknown'), " +
@@ -509,8 +524,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
-                "(''|[A-Za-z0-9 :\"()<>';<>º#-.=_]*), " +
-                "(''|[A-Za-z0-9 :\"()<>';<>º#-.=_]*), " +
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?+, " +
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?, " +
                 "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)(, |)");
@@ -520,6 +533,23 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         ArrayList<String> result = new ArrayList<>();
         while (matcher.find()) {
             result.add(matcher.group());
+        }
+
+        return result;
+    }
+
+    private String[] getResponseErrorsWarnings(String response) {
+
+        String tmp = cutHeader(response);
+
+        tmp = tmp.replace("[", "");
+        tmp = tmp.replace("]", "");
+
+        String[] result = tmp.split("\", ");
+
+        if(result.length == 2) {
+            result[0] = result[0].substring(2);
+            result[1] = result[1].substring(1, result[1].length() - 2);
         }
 
         return result;
@@ -621,28 +651,92 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
     private void showLogs(ArrayList<String> logs) {
 
-        for(String log : logs){
-            System.out.println(log);
-
-        }
-
-
-        String rowData[][] = new String[logs.size()][13];
+        String rowData[][] = new String[logs.size()][11];
 
         for(int i = 0; i < logs.size(); i++) {
             String tmp[] = logs.get(i).split(", ");
             rowData[i] = tmp;
         }
 
-        String columnNames[] = { "Name", "Vehicle", "Type", "Year", "1", "2", "3", "4", "Warnings", "Errors", "5", "6", "7"};
-        resultsTable = new JTable(rowData, columnNames);
-        resultsTable.setFillsViewportHeight(true);
+        String columnNames[] = { "Name", "Vehicle", "Type", "Year", "Distance", "Latitude", "Longitude", "Date", "Duration", "Depth", "Altitude"};
 
-        jScrollPaneResults = new JScrollPane(resultsTable);
+        resultsTable = new JTable(new DefaultTableModel(rowData, columnNames)) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        //todo para fazer download verificar quais estão selecionadas
+        resultsTable.setRowSelectionAllowed(true);
+        resultsTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        addListennerToTable();
+
+        setVisible(true);
+        pack();
+
+        jScrollPaneResults = new JScrollPane((resultsTable));
         jScrollPaneResults.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         jScrollPaneResults.setPreferredSize(new Dimension (1200, 570));
 
         resultsGrid.add(jScrollPaneResults);
         resultsGrid.revalidate();
      }
+
+    private void addListennerToTable() {
+
+        resultsTable.addMouseListener(new MouseAdapter(){
+            @Override
+            public void mousePressed(MouseEvent e){displayPopup(e);}
+            @Override
+            public void mouseReleased(MouseEvent e){hidePopup(e);}
+        });
+    }
+
+    private void hidePopup(MouseEvent e) {
+        dialogPopup.addFocusListener(new FocusAdapter(){
+            @Override
+            public void focusLost(FocusEvent e){
+                dialogPopup.setVisible(false);
+            }
+        });
+    }
+
+    //TODO GUARDAR CRITÉRIOS DE PESQUISA ATUAIS E FALTA SENSORES
+    private void displayPopup(MouseEvent e){
+        int selectedRow = resultsTable.rowAtPoint(e.getPoint());
+        JTable table =(JTable) e.getSource();
+        Point point = e.getPoint();
+        int row = table.rowAtPoint(point);
+
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("name", resultsTable.getValueAt(row,0).toString());
+
+        String[] otherInfo = null;
+
+        try {
+            String tmp = getRequestToServer(parameters);
+            otherInfo = getResponseErrorsWarnings(tmp);
+        } catch (IOException error) {
+            error.printStackTrace();
+        }
+
+        if(otherInfo.length != 2)
+            return;
+
+        dialogLabel.setText("<html><b>Errors</b>< " + otherInfo[0] + " <br><b>Warnings</b> " + otherInfo[1]);
+
+        int rowHeight = resultsTable.getRowHeight();
+        Point tableLocation = resultsTable.getLocationOnScreen();
+
+        dialogPopup.add(dialogLabel);
+        JPanel contentPane = (JPanel)dialogPopup.getContentPane();
+        contentPane.setBackground(Color.WHITE);
+        contentPane.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED, Color.LIGHT_GRAY, Color.LIGHT_GRAY));
+        dialogPopup.pack();
+        dialogPopup.setBounds(tableLocation.x,tableLocation.y +((selectedRow+1)*rowHeight),(int)resultsTable.getWidth(), (int)resultsTable.getRowHeight()*5);
+        dialogPopup.requestFocus();
+        dialogPopup.setVisible(true);
+    }
 }
