@@ -57,6 +57,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private HttpURLConnection con;
     private ParameterStringBuilder stringBuilder;
 
+    private Map<String, String> parametersToSearch;
+
 
 
     /**
@@ -583,47 +585,50 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         if(e.getSource() == searchBtn) {
 
             //todo: dar para selecionar vários veiculos tipos e datas (falta alterar servidor)
-            Map<String, String> parameters = new HashMap<>();
+            if(parametersToSearch == null)
+                parametersToSearch = new HashMap<>();
+            else
+                parametersToSearch.clear();
 
             for (JCheckBox box : vehiclesNamesCheckBox) {
                 if(box.isSelected())
-                    parameters.put("vehicle",box.getText());
+                    parametersToSearch.put("vehicle",box.getText());
             }
 
             for (JCheckBox box : yearCheckBox) {
                 if(box.isSelected())
-                    parameters.put("year",box.getText());
+                    parametersToSearch.put("year",box.getText());
             }
 
             for (JCheckBox box : vehiclesTypeCheckBox) {
                 if(box.isSelected())
-                    parameters.put("type",box.getText());
+                    parametersToSearch.put("type",box.getText());
             }
 
 
             if(!durMinField.getText().isEmpty())
-                parameters.put("minDistTravelled", durMinField.getText());
+                parametersToSearch.put("minDistTravelled", durMinField.getText());
 
             if(!distanceMaxField.getText().isEmpty())
-                parameters.put("maxDistTravelled", distanceMaxField.getText());
+                parametersToSearch.put("maxDistTravelled", distanceMaxField.getText());
 
             if(!durMinField.getText().isEmpty())
-                parameters.put("minDuration", durMinField.getText());
+                parametersToSearch.put("minDuration", durMinField.getText());
 
             if(!durMinField.getText().isEmpty())
-                parameters.put("minDuration", durMinField.getText());
+                parametersToSearch.put("minDuration", durMinField.getText());
 
             if(!zMinField.getText().isEmpty())
-                parameters.put("minDepth", zMinField.getText());
+                parametersToSearch.put("minDepth", zMinField.getText());
 
             if(!zMaxField.getText().isEmpty())
-                parameters.put("maxDepth",  zMaxField.getText());
+                parametersToSearch.put("maxDepth",  zMaxField.getText());
 
 
             ArrayList<String> logs = null;
 
             try {
-                String tmp = getRequestToServer(parameters);
+                String tmp = getRequestToServer(parametersToSearch);
                 logs = getResponseLogs(tmp);
             } catch (IOException error) {
                 error.printStackTrace();
@@ -646,34 +651,42 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         String rowData[][] = new String[logs.size()][11];
 
-        for(int i = 0; i < logs.size(); i++) {
+        for (int i = 0; i < logs.size(); i++) {
             String tmp[] = logs.get(i).split(", ");
             rowData[i] = tmp;
         }
 
-        String columnNames[] = { "Name", "Vehicle", "Type", "Year", "Distance", "Latitude", "Longitude", "Date", "Duration", "Depth", "Altitude"};
+        String columnNames[] = {"Name", "Vehicle", "Type", "Year", "Distance", "Latitude", "Longitude", "Date", "Duration", "Depth", "Altitude"};
 
-        resultsTable = new JTable(new DefaultTableModel(rowData, columnNames)) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        if(resultsTable == null) {
+            resultsTable = new JTable(new DefaultTableModel(rowData, columnNames)) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
 
-        //todo para fazer download verificar quais estão selecionadas
-        resultsTable.setRowSelectionAllowed(true);
-        resultsTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            //todo para fazer download verificar quais estão selecionadas
+            resultsTable.setRowSelectionAllowed(true);
+            resultsTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-        addListennerToTable();
+            addListennerToTable();
 
-        setVisible(true);
+            jScrollPaneResults = new JScrollPane((resultsTable));
+            jScrollPaneResults.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+            jScrollPaneResults.setPreferredSize(new Dimension (1200, 570));
+            resultsGrid.add(jScrollPaneResults);
+            setVisible(true);
+        }
+
+        else {
+            DefaultTableModel model = (DefaultTableModel)resultsTable.getModel();
+            model.setDataVector(rowData, columnNames);
+            resultsTable.setModel(model);
+        }
+
         pack();
-
-        jScrollPaneResults = new JScrollPane((resultsTable));
-        jScrollPaneResults.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        jScrollPaneResults.setPreferredSize(new Dimension (1200, 570));
-
-        resultsGrid.add(jScrollPaneResults);
+        resultsTable.revalidate();
         resultsGrid.revalidate();
      }
 
@@ -703,13 +716,16 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         Point point = e.getPoint();
         int row = table.rowAtPoint(point);
 
-        Map<String, String> parameters = new HashMap<>();
-        parameters.put("name", resultsTable.getValueAt(row,0).toString());
+        //Map<String, String> parameters = new HashMap<>();
+        if(resultsTable.getValueAt(row,0).toString() == null)
+            return;
+
+        parametersToSearch.put("name", resultsTable.getValueAt(row,0).toString());
 
         String[] otherInfo = null;
 
         try {
-            String tmp = getRequestToServer(parameters);
+            String tmp = getRequestToServer(parametersToSearch);
             otherInfo = getResponseErrorsWarnings(tmp);
         } catch (IOException error) {
             error.printStackTrace();
