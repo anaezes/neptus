@@ -1,4 +1,6 @@
 package pt.lsts.neptus.searchlogs;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import pt.lsts.neptus.i18n.I18n;
 import pt.lsts.neptus.util.GuiUtils;
 import pt.lsts.neptus.util.conf.ConfigFetch;
@@ -11,8 +13,6 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,7 +57,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private HttpURLConnection con;
     private ParameterStringBuilder stringBuilder;
 
-    private Map<String, String> parametersToSearch;
+    private Multimap<String, String> parametersToSearch;
 
 
 
@@ -128,7 +128,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         }
     }
 
-    private String getRequestToServer(Map<String, String> parameters) throws IOException {
+    private String getRequestToServer(Multimap<String, String> parameters) throws IOException {
 
         URL url_request = new URL(URL + ParameterStringBuilder.getParamsString(parameters));
         System.out.println(URL + ParameterStringBuilder.getParamsString(parameters));
@@ -385,7 +385,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         yearBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
 
-        Map<String, String> parameters = new HashMap<>();
+        Multimap<String, String> parameters = ArrayListMultimap.create();
         parameters.put("all-years", "only");
 
         String[] years = null;
@@ -416,14 +416,13 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         vehicleTypePanel.setBorder(BorderFactory.createTitledBorder("Vehicle Type"));
         vehiclesTypeBox = Box.createVerticalBox();
 
-        //todo select all when this is checked
         vehiclesTypeSelectAll = new JCheckBox("Select all");
         vehiclesTypeSelectAll.addActionListener(this);
         vehiclesTypeBox.add(vehiclesTypeSelectAll);
 
         vehiclesTypeBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        Map<String, String> parameters = new HashMap<>();
+        Multimap<String, String> parameters =  ArrayListMultimap.create();
         parameters.put("all-types", "only");
 
         String[] types = null;
@@ -462,7 +461,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         vehiclesNamesBox.add(new JSeparator(SwingConstants.HORIZONTAL));
 
-        Map<String, String> parameters = new HashMap<>();
+        Multimap<String, String> parameters =  ArrayListMultimap.create();
         parameters.put("all-vehicles", "only");
 
         String[] vehicles = null;
@@ -584,9 +583,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         if(e.getSource() == searchBtn) {
 
-            //todo: dar para selecionar vários veiculos tipos e datas (falta alterar servidor)
             if(parametersToSearch == null)
-                parametersToSearch = new HashMap<>();
+                parametersToSearch = ArrayListMultimap.create();
             else
                 parametersToSearch.clear();
 
@@ -606,23 +604,35 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
             }
 
 
-            if(!durMinField.getText().isEmpty())
-                parametersToSearch.put("minDistTravelled", durMinField.getText());
+            if(!distanceMinField.getText().isEmpty()) {
+                parametersToSearch.removeAll("minDistTravelled");
+                parametersToSearch.put("minDistTravelled", distanceMinField.getText());
+            }
 
-            if(!distanceMaxField.getText().isEmpty())
+            if(!distanceMaxField.getText().isEmpty()) {
+                parametersToSearch.removeAll("maxDistTravelled");
                 parametersToSearch.put("maxDistTravelled", distanceMaxField.getText());
+            }
 
-            if(!durMinField.getText().isEmpty())
+            if(!durMinField.getText().isEmpty()) {
+                parametersToSearch.removeAll("minDuration");
                 parametersToSearch.put("minDuration", durMinField.getText());
+            }
 
-            if(!durMinField.getText().isEmpty())
-                parametersToSearch.put("minDuration", durMinField.getText());
+            if(!durMaxField.getText().isEmpty()) {
+                parametersToSearch.removeAll("maxDuration");
+                parametersToSearch.put("maxDuration", durMaxField.getText());
+            }
 
-            if(!zMinField.getText().isEmpty())
+            if(!zMinField.getText().isEmpty()) {
+                parametersToSearch.removeAll("minDepth");
                 parametersToSearch.put("minDepth", zMinField.getText());
+            }
 
-            if(!zMaxField.getText().isEmpty())
-                parametersToSearch.put("maxDepth",  zMaxField.getText());
+            if(!zMaxField.getText().isEmpty()) {
+                parametersToSearch.removeAll("maxDepth");
+                parametersToSearch.put("maxDepth", zMaxField.getText());
+            }
 
 
             ArrayList<String> logs = null;
@@ -720,6 +730,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         if(resultsTable.getValueAt(row,0).toString() == null)
             return;
 
+        parametersToSearch.removeAll("name");
         parametersToSearch.put("name", resultsTable.getValueAt(row,0).toString());
 
         String[] otherInfo = null;
