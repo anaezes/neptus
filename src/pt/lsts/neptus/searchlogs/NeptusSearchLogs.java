@@ -45,6 +45,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JTextField durMaxField;
     private JTextField zMinField;
     private JTextField zMaxField;
+    private JTextField containsField;
 
     private JTextField totalDistanceField;
     private JTextField totalDurationField;
@@ -52,7 +53,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JTextField maxZField;
 
     private JPanel resultsGrid;
-    private  JDialog dialogPopup;
+    private JDialog dialogPopup;
     private JLabel dialogLabel;
 
     private JTable resultsTable;
@@ -266,7 +267,7 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         JPanel containsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         containsPanel.setBorder(BorderFactory.createTitledBorder("Contains"));
-        JTextField containsField = new JTextField();
+        containsField = new JTextField();
         containsField.setText("");
         containsField.setColumns(10);
         containsField.setAlignmentY(JTextField.LEFT);
@@ -636,6 +637,11 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
             if(!zMaxField.getText().isEmpty()) {
                 parametersToSearch.removeAll("maxDepth");
                 parametersToSearch.put("maxDepth", zMaxField.getText());
+            }
+
+            if(!containsField.getText().isEmpty()) {
+                parametersToSearch.removeAll("contains");
+                parametersToSearch.put("contains", containsField.getText());
             }
 
 
