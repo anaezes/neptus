@@ -46,6 +46,11 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
     private JTextField zMinField;
     private JTextField zMaxField;
 
+    private JTextField totalDistanceField;
+    private JTextField totalDurationField;
+    private JTextField minZField;
+    private JTextField maxZField;
+
     private JPanel resultsGrid;
     private  JDialog dialogPopup;
     private JLabel dialogLabel;
@@ -164,8 +169,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         totalDistanceLbl.setFont(font.deriveFont(font.getStyle() ^ Font.BOLD));
         totalDistancePnl.add(totalDistanceLbl);
 
-        JTextField totalDistanceField = new JTextField();
-        totalDistanceField.setText("xxx");
+        totalDistanceField = new JTextField();
+        totalDistanceField.setText("0.0");
         totalDistanceField.setColumns(10);
         totalDistancePnl.add(totalDistanceField);
 
@@ -177,8 +182,8 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         totalDurationLbl.setFont(font.deriveFont(font.getStyle() ^ Font.BOLD));
         totalDurationPnl.add(totalDurationLbl);
 
-        JTextField totalDurationField = new JTextField();
-        totalDurationField.setText("xxx");
+        totalDurationField = new JTextField();
+        totalDurationField.setText("0.0");
         totalDurationField.setColumns(10);
         totalDurationPnl.add(totalDurationField);
 
@@ -186,12 +191,12 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         resultsGrid.add(new JPanel());
 
         JPanel minZPnl = new JPanel();
-        JLabel minZLbl = new JLabel("Min Z");
+        JLabel minZLbl = new JLabel("Max depth");
         minZLbl.setFont(font.deriveFont(font.getStyle() ^ Font.BOLD));
         minZPnl.add(minZLbl);
 
-        JTextField minZField = new JTextField();
-        minZField.setText("xxx");
+        minZField = new JTextField();
+        minZField.setText("0.0");
         minZField.setColumns(10);
         minZPnl.add(minZField);
 
@@ -199,12 +204,12 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         resultsGrid.add(new JPanel());
 
         JPanel maxZPnl = new JPanel();
-        JLabel maxZLbl = new JLabel("Max Z");
+        JLabel maxZLbl = new JLabel("Max Altitude");
         maxZLbl.setFont(font.deriveFont(font.getStyle() ^ Font.BOLD));
         maxZPnl.add(maxZLbl);
 
-        JTextField maxZField = new JTextField();
-        maxZField.setText("xxx");
+        maxZField = new JTextField();
+        maxZField.setText("0.0");
         maxZField.setColumns(10);
         maxZPnl.add(maxZField);
 
@@ -332,7 +337,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
 
         JPanel durationMax = new JPanel(new FlowLayout(FlowLayout.LEFT));
         durationMax.setBorder(BorderFactory.createTitledBorder("Duration Max"));
-
 
         durMaxField = new JTextField();
         durMaxField.setText("");
@@ -645,6 +649,11 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
             }
 
             showLogs(logs);
+            calculateParameters(logs);
+
+            pack();
+            resultsTable.revalidate();
+            resultsGrid.revalidate();
 
         }
 
@@ -655,6 +664,29 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
         if(e.getSource() == openToMraBtn) {
             JOptionPane.showMessageDialog(null, "Under construction...");
         }
+    }
+
+    private void calculateParameters(ArrayList<String> logs) {
+
+        float dist = 0, duration = 0;
+        float maxDepth = 0, maxAlt = 0;
+
+        for(int i = 0; i < resultsTable.getRowCount(); i++) {
+            dist += Float.parseFloat((String) resultsTable.getValueAt(i, 4));
+            duration += Float.parseFloat((String)resultsTable.getValueAt(i,8));
+
+            if(Float.parseFloat((String) resultsTable.getValueAt(i, 10)) > maxAlt)
+                maxAlt = Float.parseFloat((String) resultsTable.getValueAt(i, 10));
+
+            if(Float.parseFloat((String) resultsTable.getValueAt(i, 9)) > maxDepth)
+                maxDepth = Float.parseFloat((String) resultsTable.getValueAt(i, 9));
+
+        }
+
+        totalDistanceField.setText(Float.toString(dist));
+        totalDurationField.setText(Float.toString(duration));
+        minZField.setText(Float.toString(maxDepth));
+        maxZField.setText(Float.toString(maxAlt));
     }
 
     private void showLogs(ArrayList<String> logs) {
@@ -694,10 +726,6 @@ public class NeptusSearchLogs extends JFrame implements ActionListener {
             model.setDataVector(rowData, columnNames);
             resultsTable.setModel(model);
         }
-
-        pack();
-        resultsTable.revalidate();
-        resultsGrid.revalidate();
      }
 
     private void addListennerToTable() {
